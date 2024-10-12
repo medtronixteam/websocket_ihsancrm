@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.io Chat</title>
+    <style>
+        /* Add some basic styling */
+        ul { list-style-type: none; margin: 0; padding: 0; }
+        li { padding: 8px; margin-bottom: 10px; background-color: #f4f4f4; }
+        input { padding: 10px; width: 80%; }
+        button { padding: 10px; width: 15%; }
+    </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <input id="input" autocomplete="off" /><button onclick="sendMessage()">Send</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function sendMessage() {
+            const input = document.getElementById('input');
+            socket.emit('chat message', input.value);
+            input.value = '';
+        }
+
+        socket.on('pending_messages', function(msg){
+            const item = document.createElement('li');
+            item.textContent = msg;
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+    </script>
+</body>
+</html>
