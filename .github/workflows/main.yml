@@ -31,14 +31,24 @@ jobs:
       # Step 4: Build Docker image
       - name: Build Docker image
         run: |
-          docker build -t $DOCKER_REGISTRY/$IMAGE_NAME:latest .
-          docker tag $DOCKER_REGISTRY/$IMAGE_NAME:latest $DOCKER_REGISTRY/$IMAGE_NAME:v1-${{ github.sha }}
+          IMAGE_TAG="v1-${{ github.sha }}"
+          docker build -t $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker tag $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$IMAGE_NAME:latest
+
+      # Debugging step to check the image reference format
+      - name: Debug Image References
+        run: |
+          IMAGE_TAG="v1-${{ github.sha }}"
+          echo "DOCKER_REGISTRY: $DOCKER_REGISTRY"
+          echo "IMAGE_NAME: $IMAGE_NAME"
+          echo "IMAGE_TAG: $IMAGE_TAG"
 
       # Step 5: Push Docker image to DigitalOcean
       - name: Push Docker image to DigitalOcean Registry
         run: |
+          IMAGE_TAG="v1-${{ github.sha }}"
+          docker push $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
           docker push $DOCKER_REGISTRY/$IMAGE_NAME:latest
-          docker push $DOCKER_REGISTRY/$IMAGE_NAME:v1-${{ github.sha }}
 
       # Step 6: Install kubectl (Kubernetes CLI)
       - name: Set up kubectl
@@ -56,7 +66,8 @@ jobs:
       # Step 8: Update Kubernetes deployment image
       - name: Update deployment with new image
         run: |
-          kubectl set image deployment/$KUBERNETES_DEPLOYMENT ihsanai-websocket-main-container=$DOCKER_REGISTRY/$IMAGE_NAME:latest -n $KUBERNETES_NAMESPACE
+          IMAGE_TAG="v1-${{ github.sha }}"
+          kubectl set image deployment/$KUBERNETES_DEPLOYMENT ihsanai-websocket-main-container=$DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG -n $KUBERNETES_NAMESPACE
 
       # Step 9: Apply the deployment
       - name: Apply Kubernetes Deployment
