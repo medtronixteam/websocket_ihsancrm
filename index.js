@@ -92,8 +92,9 @@ const emitDataInChunks = (token) => {
     if (index < data.length) {
       const chunk = data.slice(index, index + 5);
       io.emit('pending_messages_' + token, chunk);
+      io.emit('messages_info', "Chunk Number. "+index);
       index += 5;
-      console.log('Emitted data for token:', token);
+     // console.log('Emitted data for token:', token);
     } else {
       io.emit('messages_info', "Message loop has finished. Restarting again.");
       callAPi(token); // Optionally call an API after sending all messages
