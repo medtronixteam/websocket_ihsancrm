@@ -3,49 +3,65 @@ const http = require('http');
 const axios = require('axios');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
-
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-
 const server = http.createServer(app);
-
 const io = socketIo(server);
 
-//  middleware
+// Middleware
 app.use(bodyParser.json());
-
-
 app.use(express.static('public'));
 
+// Helper to get file path
+const getFilePath = (token) => path.join(__dirname, `${token}.json`);
 
+// Function to save data to JSON file
+const saveToFile = (token, data) => {
+  const filePath = getFilePath(token);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+};
+
+// Function to load data from JSON file
+const loadFromFile = (token) => {
+  const filePath = getFilePath(token);
+  if (fs.existsSync(filePath)) {
+    const fileContent = fs.readFileSync(filePath);
+    return JSON.parse(fileContent);
+  }
+  return [];
+};
+
+// API to handle incoming messages
 app.post('/api/pending/messages', (req, res) => {
   const message = req.body.message;
   const token = req.body.token;
+
   if (!message) {
     return res.status(400).send({ success: false, message: 'No message provided' });
   }
 
-  // console.log('Received message via API:', message);
-  // if(localStorage.getItem('token_'+token)){
-  //  let dataArray= localStorage.getItem('token_'+token, message); 
-  //  dataArray=JSON.parse(dataArray);
-  //  dataArray.push(JSON.parse(message));
-  //  localStorage.setItem('message', JSON.stringify(dataArray));
-  // }else{
-  //   localStorage.setItem('message', message); 
-  // }
+  // Load existing messages from the file
+  let existingMessages = loadFromFile(token);
 
-  emitDataInChunks(message, token);
+  // Append new messages and remove duplicates
+  existingMessages = existingMessages.concat(message);
+  const uniqueMessages = removeDuplicates(existingMessages);
 
-  //send data to all connected clients
-  io.emit('messages_info',message.length+" message are in queue Messages are"+message );
+  // Save the updated messages back to the file
+  saveToFile(token, uniqueMessages);
 
+  // Start emitting messages in chunks
+  emitDataInChunks(uniqueMessages, token);
+
+  io.emit('messages_info', uniqueMessages.length + " messages are in queue. Messages are: " + JSON.stringify(uniqueMessages));
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
 });
 
+// Function to call external API
 const callAPi = (token) => {
-
   const FormData = require('form-data');
   let data = new FormData();
   data.append('bot_token', token);
@@ -54,41 +70,37 @@ const callAPi = (token) => {
     method: 'post',
     maxBodyLength: Infinity,
     url: 'https://webai.ihsancrm.com/api/sms/nj/socket',
-    headers: {
-
-    },
+    headers: {},
     data: data
   };
 
   axios.request(config)
     .then((response) => {
-
+      console.log('API called successfully');
     })
     .catch((error) => {
-      console.log(error);
+      console.log('API call failed:', error);
     });
-
 };
-const emitDataInChunks = (data, token) => {
-  //let data=JSON.parse(message);
 
-  const uniqueData = removeDuplicates(data);
-  console.log('unique data is ', uniqueData);
+// Emit messages in chunks at a 3000ms interval
+const emitDataInChunks = (data, token) => {
   let index = 0;
   const intervalId = setInterval(() => {
-    if (index < uniqueData.length) {
-      const chunk = uniqueData.slice(index, index + 5);
+    if (index < data.length) {
+      const chunk = data.slice(index, index + 5);
       io.emit('pending_messages_' + token, chunk);
       index += 5;
-      console.log('emmited data at token  ', token);
+      console.log('Emitted data for token:', token);
     } else {
-     
-      io.emit('messages_info'," Message Loop Has been Finished Restarting again" );
-      callAPi(token);
-      clearInterval(intervalId);
+      io.emit('messages_info', "Message loop has finished. Restarting again.");
+      callAPi(token); // Optionally call an API after sending all messages
+      clearInterval(intervalId); // Clear interval when done
     }
-  }, 30000);
+  }, 3000); // 3000ms interval for sending chunks
 };
+
+// Remove duplicate messages based on {id:}
 const removeDuplicates = (array) => {
   const seen = new Set();
   return array.filter(item => {
@@ -97,11 +109,6 @@ const removeDuplicates = (array) => {
     return !duplicate;
   });
 };
-
-
-
-
-
 
 // Listen for new connections on socket.io
 io.on('connection', (socket) => {
