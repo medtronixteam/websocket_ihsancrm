@@ -55,7 +55,7 @@ app.post('/api/pending/messages', (req, res) => {
   // Start emitting messages in chunks
   emitDataInChunks(token);
 
-  io.emit('messages_info', uniqueMessages.length + " messages are in queue.");
+  io.emit('messages_info', uniqueMessages.length + " messages are in queue. Messages are: " + JSON.stringify(uniqueMessages));
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
 });
@@ -85,7 +85,6 @@ const callAPi = (token) => {
 
 // Emit messages in chunks at a 3000ms interval
 const emitDataInChunks = (token) => {
-  io.emit('messages_info', "emitDataInChunks is triggered");
     let data = loadFromFile(token);
   let index = 0;
   const intervalId = setInterval(() => {
