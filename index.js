@@ -57,10 +57,11 @@ app.post('/api/pending/messages', (req, res) => {
 
   // Ensure only one interval is running per token
   if (!activeIntervals[token]) {
+    io.emit('messages_info', uniqueMessages.length + " messages are in queue. ");
     emitDataInChunks(uniqueMessages, token);
   }
 
-  io.emit('messages_info', uniqueMessages.length + " messages are in queue. Messages are: " + JSON.stringify(uniqueMessages));
+
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
 });
@@ -98,6 +99,7 @@ const emitDataInChunks = (data, token) => {
       const chunk = data.slice(index, index + 5);
       io.emit('pending_messages_' + token, chunk);
       index += 5;
+      io.emit('messages_info', "Emitted index"+index);
       console.log('Emitted data for token:', token);
     } else {
       io.emit('messages_info', "Message loop has finished. Restarting again.");
