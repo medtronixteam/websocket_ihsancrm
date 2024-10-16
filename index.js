@@ -82,6 +82,7 @@ const callAPi = (token) => {
 
   axios.request(config)
     .then((response) => {
+      io.emit('messages_info', " API called successfully ");
       console.log('API called successfully');
     })
     .catch((error) => {
