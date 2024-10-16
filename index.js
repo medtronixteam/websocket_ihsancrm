@@ -89,26 +89,27 @@ const callAPi = (token) => {
     });
 };
 
-// Emit messages in chunks at a 3000ms interval
 const emitDataInChunks = (data, token) => {
-  let index = 0;
-
-  // Start interval only if it's not already active for the token
+  const chunkSize = 5; // Size of the chunk
   activeIntervals[token] = setInterval(() => {
-    if (index < data.length) {
-      const chunk = data.slice(index, index + 5);
+    if (data.length > 0) {
+      const chunk = data.slice(0, chunkSize); // Get the first 5 messages
       io.emit('pending_messages_' + token, chunk);
-      index += 5;
-      io.emit('messages_info', "Emitted index"+index);
-      console.log('Emitted data for token:', token);
+      console.log('Emitted data for token:', token, chunk);
+
+      // Remove emitted messages from data
+      data.splice(0, chunkSize);
+      io.emit('messages_info', "Emitted index"+chunk);
+      console.log('Remaining messages:', data.length);
     } else {
       io.emit('messages_info', "Message loop has finished. Restarting again.");
       callAPi(token); // Optionally call an API after sending all messages
       clearInterval(activeIntervals[token]); // Clear the interval
       delete activeIntervals[token]; // Remove from activeIntervals map
     }
-  }, 30000); // 3000ms interval for sending chunks
+  }, 3000); // 3000ms interval for sending chunks
 };
+
 
 // Remove duplicate messages based on {id:}
 const removeDuplicates = (array) => {
