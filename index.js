@@ -107,7 +107,7 @@ const emitDataInChunks = (data, token) => {
       clearInterval(activeIntervals[token]); // Clear the interval
       delete activeIntervals[token]; // Remove from activeIntervals map
     }
-  }, 3000); // 3000ms interval for sending chunks
+  }, 30000); // 3000ms interval for sending chunks
 };
 
 // Remove duplicate messages based on {id:}
