@@ -38,7 +38,7 @@ app.post('/api/pending/messages', (req, res) => {
   emitDataInChunks(message, token);
 
   //send data to all connected clients
-  //io.emit('pending_messages', message);
+  io.emit('messages_called', message);
 
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
@@ -85,7 +85,7 @@ const emitDataInChunks = (data, token) => {
       callAPi(token);
       clearInterval(intervalId);
     }
-  }, 5000);
+  }, 30000);
 };
 const removeDuplicates = (array) => {
   const seen = new Set();
