@@ -14,6 +14,9 @@ const io = socketIo(server);
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// Map to store active intervals per token
+const activeIntervals = {};
+
 // Helper to get file path
 const getFilePath = (token) => path.join(__dirname, `${token}.json`);
 
@@ -52,10 +55,12 @@ app.post('/api/pending/messages', (req, res) => {
   // Save the updated messages back to the file
   saveToFile(token, uniqueMessages);
 
-  // Start emitting messages in chunks
-  emitDataInChunks(token);
+  // Ensure only one interval is running per token
+  if (!activeIntervals[token]) {
+    emitDataInChunks(uniqueMessages, token);
+  }
 
-  io.emit('messages_info', uniqueMessages.length + " messages are in queue.");
+  io.emit('messages_info', uniqueMessages.length + " messages are in queue. Messages are: " + JSON.stringify(uniqueMessages));
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
 });
@@ -84,23 +89,23 @@ const callAPi = (token) => {
 };
 
 // Emit messages in chunks at a 3000ms interval
-const emitDataInChunks = (token) => {
-  io.emit('messages_info', "emitDataInChunks is triggered");
-    let data = loadFromFile(token);
+const emitDataInChunks = (data, token) => {
   let index = 0;
-  const intervalId = setInterval(() => {
+
+  // Start interval only if it's not already active for the token
+  activeIntervals[token] = setInterval(() => {
     if (index < data.length) {
       const chunk = data.slice(index, index + 5);
       io.emit('pending_messages_' + token, chunk);
-      io.emit('messages_info', "Chunk Number. "+index);
       index += 5;
-     // console.log('Emitted data for token:', token);
+      console.log('Emitted data for token:', token);
     } else {
       io.emit('messages_info', "Message loop has finished. Restarting again.");
       callAPi(token); // Optionally call an API after sending all messages
-      clearInterval(intervalId); // Clear interval when done
+      clearInterval(activeIntervals[token]); // Clear the interval
+      delete activeIntervals[token]; // Remove from activeIntervals map
     }
-  }, 30000); // 3000ms interval for sending chunks
+  }, 3000); // 3000ms interval for sending chunks
 };
 
 // Remove duplicate messages based on {id:}
