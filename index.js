@@ -38,7 +38,7 @@ app.post('/api/pending/messages', (req, res) => {
   emitDataInChunks(message, token);
 
   //send data to all connected clients
-  io.emit('messages_called', message);
+  io.emit('messages_info',message.length+" message are in queue Messages are"+message );
 
 
   res.status(200).send({ success: true, message: 'Message broadcasted' });
@@ -82,6 +82,8 @@ const emitDataInChunks = (data, token) => {
       index += 5;
       console.log('emmited data at token  ', token);
     } else {
+     
+      io.emit('messages_info'," Message Loop Has been Finished Restarting again" );
       callAPi(token);
       clearInterval(intervalId);
     }
