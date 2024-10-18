@@ -104,7 +104,7 @@ const emitDataInChunks = (data, token) => {
       console.log('Remaining messages:', data.length);
     } else {
       io.emit('messages_info', "Message loop has finished. Restarting again.");
-      callAPi(token); // Optionally call an API after sending all messages
+    //  callAPi(token); // Optionally call an API after sending all messages
       clearInterval(activeIntervals[token]); // Clear the interval
       delete activeIntervals[token]; // Remove from activeIntervals map
     }
